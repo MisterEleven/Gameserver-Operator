@@ -12,39 +12,50 @@ running on the cluster via ArgoCD. Two git repos are involved:
   (`apps/gameserver-operator.yaml`, `apps/minecraft-server.yaml`) and the
   first Minecraft workload (`minecraft-server/`).
 
-## One-time: publish the operator image to GHCR
+## Publishing the operator image
 
-The manager pod's image is `ghcr.io/mistereleven/gameserver-operator:v0.1.0`,
-set via `config/manager/kustomization.yaml`. Bump the tag whenever a new
-image is pushed.
+`.github/workflows/release.yml` builds and pushes to GHCR automatically:
+
+- Push to `main`              → `latest`, `main`, `sha-<short>`
+- Push tag `vX.Y.Z`           → `X.Y.Z`, `X.Y`, `X`, `latest`
+- Pull request                → build only (Dockerfile smoke test)
+
+`config/manager/kustomization.yaml` pins the tag ArgoCD consumes
+(currently `v0.1.0`). Roll forward by tagging a new release, then
+bumping the tag in kustomize in a follow-up commit.
+
+### Bootstrapping — the first release
+
+The image `v0.1.0` won't exist until you create the tag. Order matters:
 
 ```sh
-# Prereqs: docker (or podman with docker CLI shim), buildx, a GH PAT with
-# write:packages scope, cwd == this repo.
-
-echo $GH_PAT | docker login ghcr.io -u <github-user> --password-stdin
-
-# The cluster is linux/amd64 (rivendell); dev boxes are often arm64.
-# Use buildx to cross-build and push in one shot.
-make docker-buildx \
-    IMG=ghcr.io/mistereleven/gameserver-operator:v0.1.0 \
-    PLATFORMS=linux/amd64
+cd ~/Developer/PRIVAT/gameserver
+git push -u origin main               # kicks off CI, builds "latest" + "main"
+git tag v0.1.0
+git push --tags                        # kicks off CI, builds v0.1.0
 ```
 
-If `make docker-buildx` isn't wired for cross-arch by default, fall back:
+Once the workflow's green under Actions → Release, the `v0.1.0` tag is
+in GHCR and ArgoCD can pull it.
+
+### GHCR package visibility
+
+GHCR packages default to private. Either:
+
+1. Public (simplest): GitHub → your `gameserver-operator` package page →
+   Package settings → Change visibility → Public.
+2. Private: add an `imagePullSecret` to the manager Deployment via a
+   kustomize patch. Not covered here.
+
+### Local one-off build (only if CI isn't available yet)
 
 ```sh
-docker buildx create --use --name gsv-builder || true
-docker buildx build \
-    --platform linux/amd64 \
+echo $GH_PAT | docker login ghcr.io -u MisterEleven --password-stdin
+docker buildx create --use --name gsv-builder 2>/dev/null || true
+docker buildx build --platform linux/amd64 \
     --tag ghcr.io/mistereleven/gameserver-operator:v0.1.0 \
     --push .
 ```
-
-Make the package public in GitHub → your GHCR package page → "Package
-settings" → "Change visibility" → Public. (Or keep it private and add an
-`imagePullSecret` to the manager Deployment via a kustomize patch — out
-of scope here.)
 
 ## Push the operator repo
 
@@ -115,19 +126,25 @@ Point a Minecraft Java client at `<node-ip>:NNNNN`.
 
 ## Iterating on the operator
 
-Code change → new tag:
-
 ```sh
-make docker-buildx IMG=ghcr.io/mistereleven/gameserver-operator:v0.1.1 PLATFORMS=linux/amd64
-# Edit config/manager/kustomization.yaml — bump newTag to v0.1.1.
-git commit -am "chore: v0.1.1"
+# 1. make changes, commit, push main → CI builds :latest, :main, :sha-<>
 git push
+
+# 2. cut a release
+git tag v0.1.1
+git push --tags                        # CI builds :v0.1.1, :0.1, :0
+
+# 3. point the deploy at it
+# edit config/manager/kustomization.yaml — newTag: v0.1.1
+git commit -am "chore: bump manager image to v0.1.1"
+git push                                # ArgoCD notices and rolls
 ```
 
 ArgoCD auto-heals on the operator Application (selfHeal is on), so the
-manager Deployment will roll to the new image. The Minecraft server pod
-is untouched by an operator upgrade — its Deployment only re-rolls when
-the reconciler decides to (a template edit or a `GameServer` spec edit).
+manager Deployment rolls to the new image within a minute of the
+kustomize commit. The Minecraft server pod is untouched by an operator
+upgrade — its Deployment only re-rolls when the reconciler decides to
+(a template edit or a `GameServer` spec edit).
 
 ## Rolling back
 
