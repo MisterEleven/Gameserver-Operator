@@ -1,5 +1,10 @@
-# Build the manager binary
-FROM golang:1.26 AS builder
+# Build the manager binary.
+#
+# --platform=$BUILDPLATFORM pins the builder stage to the runner's native
+# architecture; Go cross-compiles to $TARGETOS/$TARGETARCH essentially for
+# free. Without this the arm64 build on an amd64 runner runs Go itself
+# under QEMU and takes 15+ minutes.
+FROM --platform=$BUILDPLATFORM golang:1.26 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
