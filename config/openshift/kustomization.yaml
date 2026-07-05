@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# OpenShift + ArgoCD overlay. Extends config/default with:
+#   1. Labels required for the OpenShift GitOps operator to manage the
+#      operator namespace on the user's behalf.
+#   2. Pod Security Admission label matching the workload (restricted).
+#   3. Optional ClusterRole + example RoleBinding for the anyuid escape
+#      hatch (only needed when a GameTemplate opts into
+#      securityProfile: anyuid).
+#
+# Note: the anyuid RoleBinding example targets namespace `default` — copy
+# and re-target it into each game namespace that needs the escape hatch.
+
+resources:
+  - ../default
+  - anyuid-scc-clusterrole.yaml
+  - anyuid-rolebinding.example.yaml
+
+patches:
+  # Add ArgoCD-managed + PSA labels to the operator's namespace so
+  # OpenShift GitOps will grant its application-controller SA the
+  # per-namespace RoleBindings it needs to reconcile resources here.
+  - target:
+      kind: Namespace
+      name: gameserver-system
+    patch: |-
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: gameserver-system
+        labels:
+          argocd.argoproj.io/managed-by: openshift-gitops
+          pod-security.kubernetes.io/enforce: restricted
+          pod-security.kubernetes.io/enforce-version: latest

@@ -1,0 +1,24 @@
+# Example: replicate this in every namespace that hosts a GameServer with
+# securityProfile: anyuid. Bind it AFTER creating the gameserver-anyuid SA
+# in that namespace:
+#
+#   oc create sa gameserver-anyuid -n <namespace>
+#   oc apply -f anyuid-rolebinding.example.yaml -n <namespace>
+#
+# The default namespace here is `default` — edit it for each install site.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gameserver-anyuid-scc-user
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/managed-by: kustomize
+subjects:
+  - kind: ServiceAccount
+    name: gameserver-anyuid
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: gameserver-anyuid-scc-user
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,9 @@
+resources:
+- manager.yaml
+
+# Image reference: overridden here so downstream overlays (config/default,
+# config/openshift) inherit it. Bump `newTag` when a new image is pushed.
+images:
+- name: controller
+  newName: ghcr.io/mistereleven/gameserver-operator
+  newTag: v0.1.0

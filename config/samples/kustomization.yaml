@@ -1,0 +1,5 @@
+## Append samples of your project ##
+resources:
+- gameserver_v1alpha1_gametemplate.yaml
+- gameserver_v1alpha1_gameserver.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

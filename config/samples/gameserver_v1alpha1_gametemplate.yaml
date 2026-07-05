@@ -1,0 +1,59 @@
+apiVersion: gameserver.feddern.dev/v1alpha1
+kind: GameTemplate
+metadata:
+  name: minecraft-java
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  image: itzg/minecraft-server:latest
+  imagePullPolicy: IfNotPresent
+  securityProfile: restricted
+  updateStrategy: Recreate
+
+  ports:
+    - name: game
+      containerPort: 25565
+      protocol: TCP
+      exposeAs: NodePort
+      primary: true
+    - name: rcon
+      containerPort: 25575
+      protocol: TCP
+      exposeAs: ClusterIP
+
+  env:
+    - name: EULA
+      value: "true"
+
+  storage:
+    dataPath: /data
+    defaultSize: 10Gi
+
+  configKeys:
+    - name: version
+      envVar: VERSION
+      description: Minecraft version (LATEST for newest)
+      default: LATEST
+    - name: type
+      envVar: TYPE
+      type: enum
+      enum: [VANILLA, FORGE, FABRIC, PAPER]
+      default: PAPER
+    - name: memory
+      envVar: MEMORY
+      description: JVM heap size (e.g. 2G, 4G)
+      default: 2G
+    - name: motd
+      envVar: MOTD
+      description: Server MOTD shown in the client
+      default: "Managed by gameserver-operator"
+    - name: difficulty
+      envVar: DIFFICULTY
+      type: enum
+      enum: [peaceful, easy, normal, hard]
+      default: normal
+    - name: online-mode
+      envVar: ONLINE_MODE
+      type: bool
+      default: "true"

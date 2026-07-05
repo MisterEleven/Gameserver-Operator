@@ -1,0 +1,18 @@
+# Grants `use` on the built-in OpenShift `anyuid` SCC. Bind this to the
+# per-namespace `gameserver-anyuid` ServiceAccount in every namespace where
+# a GameServer opts into securityProfile: anyuid.
+#
+# The operator itself never grants SCCs. Cluster-admin applies this once;
+# users apply a namespace-scoped RoleBinding (see anyuid-rolebinding.example.yaml).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gameserver-anyuid-scc-user
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/managed-by: kustomize
+rules:
+  - apiGroups: ["security.openshift.io"]
+    resources: ["securitycontextconstraints"]
+    resourceNames: ["anyuid"]
+    verbs: ["use"]

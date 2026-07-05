@@ -1,0 +1,25 @@
+apiVersion: gameserver.feddern.dev/v1alpha1
+kind: GameServer
+metadata:
+  name: mc-sample
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  templateRef:
+    name: minecraft-java
+  config:
+    memory: "4G"
+    motd: "gameserver-operator sample"
+    difficulty: normal
+    type: PAPER
+  storage:
+    size: 20Gi
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "3Gi"
+    limits:
+      cpu: "2"
+      memory: "5Gi"
