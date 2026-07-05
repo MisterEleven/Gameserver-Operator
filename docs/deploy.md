@@ -17,26 +17,30 @@ running on the cluster via ArgoCD. Two git repos are involved:
 `.github/workflows/release.yml` builds and pushes to GHCR automatically:
 
 - Push to `main`              → `latest`, `main`, `sha-<short>`
-- Push tag `vX.Y.Z`           → `X.Y.Z`, `X.Y`, `X`, `latest`
+- Push git tag `vX.Y.Z`       → image tags `X.Y.Z`, `X.Y`, `X`, `latest`
 - Pull request                → build only (Dockerfile smoke test)
 
+Note the `v` prefix is stripped in the image tag — the git convention is
+`vX.Y.Z`, the OCI convention is `X.Y.Z`. `docker/metadata-action` does the
+translation for you.
+
 `config/manager/kustomization.yaml` pins the tag ArgoCD consumes
-(currently `v0.1.0`). Roll forward by tagging a new release, then
+(currently `0.1.0`). Roll forward by tagging a new release, then
 bumping the tag in kustomize in a follow-up commit.
 
 ### Bootstrapping — the first release
 
-The image `v0.1.0` won't exist until you create the tag. Order matters:
+The image `0.1.0` won't exist until you create the tag. Order matters:
 
 ```sh
 cd ~/Developer/PRIVAT/gameserver
 git push -u origin main               # kicks off CI, builds "latest" + "main"
 git tag v0.1.0
-git push --tags                        # kicks off CI, builds v0.1.0
+git push --tags                        # kicks off CI, builds 0.1.0
 ```
 
-Once the workflow's green under Actions → Release, the `v0.1.0` tag is
-in GHCR and ArgoCD can pull it.
+Once the workflow's green under Actions → Release, the `0.1.0` image tag
+is in GHCR and ArgoCD can pull it.
 
 ### GHCR package visibility
 
@@ -53,7 +57,7 @@ GHCR packages default to private. Either:
 echo $GH_PAT | docker login ghcr.io -u MisterEleven --password-stdin
 docker buildx create --use --name gsv-builder 2>/dev/null || true
 docker buildx build --platform linux/amd64 \
-    --tag ghcr.io/mistereleven/gameserver-operator:v0.1.0 \
+    --tag ghcr.io/mistereleven/gameserver-operator:0.1.0 \
     --push .
 ```
 
@@ -132,11 +136,11 @@ git push
 
 # 2. cut a release
 git tag v0.1.1
-git push --tags                        # CI builds :v0.1.1, :0.1, :0
+git push --tags                        # CI builds :0.1.1, :0.1, :0
 
 # 3. point the deploy at it
-# edit config/manager/kustomization.yaml — newTag: v0.1.1
-git commit -am "chore: bump manager image to v0.1.1"
+# edit config/manager/kustomization.yaml — newTag: "0.1.1"
+git commit -am "chore: bump manager image to 0.1.1"
 git push                                # ArgoCD notices and rolls
 ```
 
