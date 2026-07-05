@@ -16,6 +16,7 @@ resources:
   - ../default
   - anyuid-scc-clusterrole.yaml
   - anyuid-rolebinding.example.yaml
+  - argocd-controller-rbac.yaml
 
 patches:
   # Add ArgoCD-managed + PSA labels to the operator's namespace so

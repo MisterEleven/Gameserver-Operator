@@ -1,0 +1,34 @@
+# OpenShift GitOps ships its application-controller SA with a ClusterRole
+# that does NOT include write on apiextensions.k8s.io/customresourcedefinitions
+# nor on this operator's API group. Without these rights, ArgoCD can't
+# reconcile the operator's CRDs, and any workload Application that creates
+# GameTemplate / GameServer CRs will fail as a downstream effect.
+#
+# Same pattern as synology-csi/argocd-snapshot-rbac.yaml in the LOTR-ARGOCD
+# repo — grant the minimum needed, colocated with the workload, instead of
+# expanding the application-controller to cluster-admin.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openshift-gitops-gameserver
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["gameserver.feddern.dev"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: openshift-gitops-gameserver
+subjects:
+  - kind: ServiceAccount
+    name: openshift-gitops-argocd-application-controller
+    namespace: openshift-gitops
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: openshift-gitops-gameserver
