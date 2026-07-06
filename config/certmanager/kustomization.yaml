@@ -1,0 +1,10 @@
+resources:
+- issuer.yaml
+- certificate-webhook.yaml
+# certificate-metrics.yaml is intentionally excluded — we do not run the
+# metrics endpoint under cert-manager-issued TLS today. Re-enable
+# alongside the [METRICS-WITH-CERTS] replacement rules in
+# config/default/kustomization.yaml when metrics TLS becomes a need.
+
+configurations:
+- kustomizeconfig.yaml

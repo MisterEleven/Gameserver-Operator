@@ -19,6 +19,12 @@ rules:
   - apiGroups: ["gameserver.feddern.dev"]
     resources: ["*"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Needed so ArgoCD can install the operator's ValidatingWebhookConfiguration
+  # (from v0.2.0 onward). cert-manager objects come from a broader extension
+  # in LOTR-ARGOCD/cert-manager/argocd-rbac.yaml.
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
