@@ -22,6 +22,12 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the gameserver itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- backupschedule_admin_role.yaml
+- backupschedule_editor_role.yaml
+- backupschedule_viewer_role.yaml
+- backup_admin_role.yaml
+- backup_editor_role.yaml
+- backup_viewer_role.yaml
 - gameserver_admin_role.yaml
 - gameserver_editor_role.yaml
 - gameserver_viewer_role.yaml

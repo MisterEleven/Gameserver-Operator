@@ -4,6 +4,8 @@
 resources:
 - bases/gameserver.feddern.dev_gametemplates.yaml
 - bases/gameserver.feddern.dev_gameservers.yaml
+- bases/gameserver.feddern.dev_backups.yaml
+- bases/gameserver.feddern.dev_backupschedules.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

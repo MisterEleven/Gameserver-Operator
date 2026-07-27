@@ -35,6 +35,8 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v8/apis/volumesnapshot/v1"
+
 	gameserverv1alpha1 "github.com/timofeddern/gameserver/api/v1alpha1"
 	"github.com/timofeddern/gameserver/internal/controller"
 	webhookv1alpha1 "github.com/timofeddern/gameserver/internal/webhook/v1alpha1"
@@ -50,6 +52,8 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(gameserverv1alpha1.AddToScheme(scheme))
+	// External types the reconcilers Get/List/Create for Backups.
+	utilruntime.Must(snapshotv1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -207,6 +211,20 @@ func main() {
 			setupLog.Error(err, "Failed to create webhook", "webhook", "GameTemplate")
 			os.Exit(1)
 		}
+	}
+	if err := (&controller.BackupReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "backup")
+		os.Exit(1)
+	}
+	if err := (&controller.BackupScheduleReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "Failed to create controller", "controller", "backupschedule")
+		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
 

@@ -32,4 +32,22 @@ resources:
   webhooks:
     validation: true
     webhookVersion: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: feddern.dev
+  group: gameserver
+  kind: Backup
+  path: github.com/timofeddern/gameserver/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: feddern.dev
+  group: gameserver
+  kind: BackupSchedule
+  path: github.com/timofeddern/gameserver/api/v1alpha1
+  version: v1alpha1
 version: "3"

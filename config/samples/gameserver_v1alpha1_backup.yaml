@@ -1,0 +1,14 @@
+apiVersion: gameserver.feddern.dev/v1alpha1
+kind: Backup
+metadata:
+  name: minecraft-preupgrade
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  gameServerRef:
+    name: mc-sample
+  # volumeSnapshotClassName omitted → cluster's default class is used.
+  # Works with any CSI driver that advertises snapshotting.
+  retainForever: true  # excluded from BackupSchedule keep-N GC

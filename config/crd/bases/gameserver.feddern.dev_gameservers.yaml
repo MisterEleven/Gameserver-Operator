@@ -322,6 +322,21 @@ spec:
                       More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
                     type: object
                 type: object
+              restoreFrom:
+                description: |-
+                  restoreFrom, when set on GameServer creation, seeds the world PVC
+                  from a prior Backup's VolumeSnapshot. See RestoreFromSpec.
+                properties:
+                  backupName:
+                    description: |-
+                      backupName is a Backup in this GameServer's namespace. That Backup
+                      must be in phase=Ready; its child VolumeSnapshot is used as the
+                      PVC's dataSourceRef.
+                    minLength: 1
+                    type: string
+                required:
+                - backupName
+                type: object
               storage:
                 description: storage overrides template defaults for the world PVC.
                 properties:

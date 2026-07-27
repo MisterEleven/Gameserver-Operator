@@ -1,0 +1,15 @@
+apiVersion: gameserver.feddern.dev/v1alpha1
+kind: BackupSchedule
+metadata:
+  name: minecraft-nightly
+  namespace: default
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  gameServerRef:
+    name: mc-sample
+  schedule: "0 4 * * *"       # 04:00 in Europe/Zurich
+  timeZone: Europe/Zurich
+  keep: 7                      # retain 7 most-recent successful runs
+  # volumeSnapshotClassName omitted → cluster default

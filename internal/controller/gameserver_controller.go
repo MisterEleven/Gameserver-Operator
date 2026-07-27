@@ -99,8 +99,27 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}
 
-	// PVC.
-	desiredPVC, err := BuildPVC(&gs, &tpl)
+	// PVC. If .spec.restoreFrom is set AND the PVC doesn't exist yet,
+	// resolve the referenced Backup to a VolumeSnapshot name and pass
+	// it into BuildPVC so kube provisions the volume seeded from that
+	// snapshot. Once the PVC exists, restoreFrom is inert — the world
+	// is what it is.
+	sourceSnapshot, restoreErr := r.resolveRestoreSource(ctx, &gs)
+	if restoreErr != nil {
+		r.setCondition(&gs, gameserverv1alpha1.ConditionRestoreSourceResolved,
+			metav1.ConditionFalse, "Unavailable", restoreErr.Error())
+		gs.Status.Phase = gameserverv1alpha1.PhaseDegraded
+		if statusErr := r.updateStatus(ctx, &gs); statusErr != nil {
+			log.Error(statusErr, "status update failed")
+		}
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+	if gs.Spec.RestoreFrom != nil {
+		r.setCondition(&gs, gameserverv1alpha1.ConditionRestoreSourceResolved,
+			metav1.ConditionTrue, "SnapshotBound", "restoreFrom Backup snapshot ready")
+	}
+
+	desiredPVC, err := BuildPVC(&gs, &tpl, sourceSnapshot)
 	if err != nil {
 		r.setCondition(&gs, gameserverv1alpha1.ConditionConfigValid, metav1.ConditionFalse, "InvalidStorage", err.Error())
 		return ctrl.Result{}, r.updateStatus(ctx, &gs)
@@ -167,6 +186,41 @@ func (r *GameServerReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+// resolveRestoreSource looks at .spec.restoreFrom and returns the
+// VolumeSnapshot name to pass into BuildPVC's dataSourceRef, or nil if
+// no restore is requested. Called on every reconcile but only produces
+// a non-nil result when the PVC doesn't yet exist — once the PVC is
+// there, restoreFrom is a no-op (PVC.spec.dataSourceRef is immutable
+// anyway).
+func (r *GameServerReconciler) resolveRestoreSource(ctx context.Context, gs *gameserverv1alpha1.GameServer) (*string, error) {
+	if gs.Spec.RestoreFrom == nil {
+		return nil, nil
+	}
+	// If the PVC already exists, restoreFrom is inert — don't set
+	// dataSourceRef on the desired object or it'll churn.
+	var existing corev1.PersistentVolumeClaim
+	err := r.Get(ctx, types.NamespacedName{Name: PVCName(gs), Namespace: gs.Namespace}, &existing)
+	if err == nil {
+		return nil, nil
+	}
+	if !apierrors.IsNotFound(err) {
+		return nil, err
+	}
+
+	var backup gameserverv1alpha1.Backup
+	if err := r.Get(ctx, types.NamespacedName{Name: gs.Spec.RestoreFrom.BackupName, Namespace: gs.Namespace}, &backup); err != nil {
+		return nil, fmt.Errorf("restoreFrom.backupName %q: %w", gs.Spec.RestoreFrom.BackupName, err)
+	}
+	if backup.Status.Phase != gameserverv1alpha1.BackupPhaseReady {
+		return nil, fmt.Errorf("restoreFrom.backupName %q: Backup phase is %q, want Ready", backup.Name, backup.Status.Phase)
+	}
+	if backup.Status.VolumeSnapshotName == "" {
+		return nil, fmt.Errorf("restoreFrom.backupName %q: Backup has no VolumeSnapshotName in status", backup.Name)
+	}
+	snap := backup.Status.VolumeSnapshotName
+	return &snap, nil
 }
 
 // applyPVC creates the PVC if missing. PVCs are largely immutable so we do

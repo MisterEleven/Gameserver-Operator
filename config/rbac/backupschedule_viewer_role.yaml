@@ -1,0 +1,29 @@
+# This rule is not used by the project gameserver itself.
+# It is provided to allow the cluster admin to help manage permissions for users.
+#
+# Grants read-only access to gameserver.feddern.dev resources.
+# This role is intended for users who need visibility into these resources
+# without permissions to modify them. It is ideal for monitoring purposes and limited-access viewing.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: gameserver
+    app.kubernetes.io/managed-by: kustomize
+  name: backupschedule-viewer-role
+rules:
+- apiGroups:
+  - gameserver.feddern.dev
+  resources:
+  - backupschedules
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - gameserver.feddern.dev
+  resources:
+  - backupschedules/status
+  verbs:
+  - get

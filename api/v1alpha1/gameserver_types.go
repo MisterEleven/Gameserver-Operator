@@ -43,6 +43,18 @@ type TemplateRef struct {
 	Name string `json:"name"`
 }
 
+// RestoreFromSpec asks the reconciler to seed the world PVC from a
+// prior Backup. Honored only on first PVC creation — once the PVC
+// exists, changes to this field are a no-op (the world is what it is).
+type RestoreFromSpec struct {
+	// backupName is a Backup in this GameServer's namespace. That Backup
+	// must be in phase=Ready; its child VolumeSnapshot is used as the
+	// PVC's dataSourceRef.
+	// +kubebuilder:validation:MinLength=1
+	// +required
+	BackupName string `json:"backupName"`
+}
+
 // StorageOverride lets a GameServer pick a different PVC size or class
 // than the template's defaults.
 type StorageOverride struct {
@@ -117,6 +129,11 @@ type GameServerSpec struct {
 	// A key defined here wins over template env and config-mapped env.
 	// +optional
 	EnvOverride []corev1.EnvVar `json:"envOverride,omitempty"`
+
+	// restoreFrom, when set on GameServer creation, seeds the world PVC
+	// from a prior Backup's VolumeSnapshot. See RestoreFromSpec.
+	// +optional
+	RestoreFrom *RestoreFromSpec `json:"restoreFrom,omitempty"`
 }
 
 // GameServerStatus reports observed state.
@@ -191,6 +208,9 @@ const (
 	// ConditionConfigValid is True when .spec.config satisfies the
 	// template's configKeys constraints.
 	ConditionConfigValid = "ConfigValid"
+	// ConditionRestoreSourceResolved is True once .spec.restoreFrom (if
+	// set) has been resolved to a bound VolumeSnapshot ready for dataSource use.
+	ConditionRestoreSourceResolved = "RestoreSourceResolved"
 )
 
 func init() {

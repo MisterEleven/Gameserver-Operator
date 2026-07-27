@@ -74,8 +74,19 @@ func ServiceName(gs *gameserverv1alpha1.GameServer, exposeAs gameserverv1alpha1.
 	return fmt.Sprintf("%s-%s", gs.Name, strings.ToLower(string(exposeAs)))
 }
 
+// snapshotAPIGroup is the API group name used in PVC dataSourceRef when
+// restoring from a VolumeSnapshot. Kept as a package-level var so tests
+// can compare pointer values without shadowing the corev1 API.
+var snapshotAPIGroup = "snapshot.storage.k8s.io"
+
 // BuildPVC returns the PVC for the game's persistent data.
-func BuildPVC(gs *gameserverv1alpha1.GameServer, tpl *gameserverv1alpha1.GameTemplate) (*corev1.PersistentVolumeClaim, error) {
+//
+// When sourceSnapshot is non-nil, the PVC is created with a
+// spec.dataSourceRef pointing at the given VolumeSnapshot in the same
+// namespace. Any CSI driver that advertises snapshotting picks this up
+// via the standard snapshot.storage.k8s.io/v1 API — nothing here is
+// driver-specific.
+func BuildPVC(gs *gameserverv1alpha1.GameServer, tpl *gameserverv1alpha1.GameTemplate, sourceSnapshot *string) (*corev1.PersistentVolumeClaim, error) {
 	size := gs.Spec.Storage.Size
 	if size == "" {
 		size = tpl.Spec.Storage.DefaultSize
@@ -105,6 +116,14 @@ func BuildPVC(gs *gameserverv1alpha1.GameServer, tpl *gameserverv1alpha1.GameTem
 	}
 	if class := gs.Spec.Storage.ClassName; class != "" {
 		pvc.Spec.StorageClassName = &class
+	}
+	if sourceSnapshot != nil && *sourceSnapshot != "" {
+		vsKind := "VolumeSnapshot"
+		pvc.Spec.DataSourceRef = &corev1.TypedObjectReference{
+			APIGroup: &snapshotAPIGroup,
+			Kind:     vsKind,
+			Name:     *sourceSnapshot,
+		}
 	}
 	return pvc, nil
 }

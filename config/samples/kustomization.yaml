@@ -2,4 +2,6 @@
 resources:
 - gameserver_v1alpha1_gametemplate.yaml
 - gameserver_v1alpha1_gameserver.yaml
+- gameserver_v1alpha1_backup.yaml
+- gameserver_v1alpha1_backupschedule.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
