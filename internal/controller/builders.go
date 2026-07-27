@@ -12,7 +12,7 @@ package controller
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -34,8 +34,12 @@ const (
 	labelManagedBy = "app.kubernetes.io/managed-by"
 	labelComponent = "app.kubernetes.io/component"
 	labelTemplate  = "gameserver.feddern.dev/template"
+	labelBackup    = "gameserver.feddern.dev/backup"
+	labelSchedule  = "gameserver.feddern.dev/schedule"
 
 	dataVolumeName = "data"
+
+	gameContainerName = "game"
 )
 
 // baseLabels are attached to every child object owned by a GameServer.
@@ -161,7 +165,7 @@ func resolveEnv(gs *gameserverv1alpha1.GameServer, tpl *gameserverv1alpha1.GameT
 	for k := range gs.Spec.Config {
 		names = append(names, k)
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 	for _, k := range names {
 		key, ok := byConfigName[k]
 		if !ok {
@@ -255,7 +259,7 @@ func BuildDeployment(gs *gameserverv1alpha1.GameServer, tpl *gameserverv1alpha1.
 	}
 
 	container := corev1.Container{
-		Name:            "game",
+		Name:            gameContainerName,
 		Image:           tpl.Spec.Image,
 		ImagePullPolicy: pullPolicy,
 		Command:         tpl.Spec.Command,
@@ -461,15 +465,8 @@ func ValidateConfig(gs *gameserverv1alpha1.GameServer, tpl *gameserverv1alpha1.G
 			if _, err := strconv.ParseBool(v); err != nil {
 				return fmt.Errorf("config key %q expects bool, got %q", k, v)
 			}
-		case "enum":
-			valid := false
-			for _, e := range key.Enum {
-				if e == v {
-					valid = true
-					break
-				}
-			}
-			if !valid {
+		case gameserverv1alpha1.ConfigKeyTypeEnum:
+			if !slices.Contains(key.Enum, v) {
 				return fmt.Errorf("config key %q must be one of %v, got %q", k, key.Enum, v)
 			}
 		}
@@ -494,6 +491,6 @@ func joinKeys(m map[string]gameserverv1alpha1.ConfigKey) string {
 	for n := range m {
 		names = append(names, n)
 	}
-	sort.Strings(names)
+	slices.Sort(names)
 	return strings.Join(names, ", ")
 }

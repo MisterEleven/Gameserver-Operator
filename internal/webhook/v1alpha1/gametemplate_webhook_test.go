@@ -26,10 +26,10 @@ func tplWith(mutate func(*gameserverv1alpha1.GameTemplate)) *gameserverv1alpha1.
 		Spec: gameserverv1alpha1.GameTemplateSpec{
 			Image: "example/game:1",
 			Ports: []gameserverv1alpha1.TemplatePort{
-				{Name: "game", ContainerPort: 25565, Primary: true},
+				{Name: testPortNameGame, ContainerPort: 25565, Primary: true},
 			},
 			ConfigKeys: []gameserverv1alpha1.ConfigKey{
-				{Name: "motd", EnvVar: "MOTD"},
+				{Name: testKeyMOTD, EnvVar: testEnvMOTD},
 			},
 		},
 	}
@@ -50,7 +50,7 @@ func TestTemplateWebhook_DuplicatePortName(t *testing.T) {
 	v := &GameTemplateCustomValidator{}
 	bad := tplWith(func(t *gameserverv1alpha1.GameTemplate) {
 		t.Spec.Ports = append(t.Spec.Ports, gameserverv1alpha1.TemplatePort{
-			Name: "game", ContainerPort: 25575,
+			Name: testPortNameGame, ContainerPort: 25575,
 		})
 	})
 	_, err := v.ValidateCreate(context.Background(), bad)
@@ -94,7 +94,7 @@ func TestTemplateWebhook_DuplicateConfigKey(t *testing.T) {
 	v := &GameTemplateCustomValidator{}
 	bad := tplWith(func(t *gameserverv1alpha1.GameTemplate) {
 		t.Spec.ConfigKeys = append(t.Spec.ConfigKeys, gameserverv1alpha1.ConfigKey{
-			Name: "motd", EnvVar: "MOTD2",
+			Name: testKeyMOTD, EnvVar: "MOTD2",
 		})
 	})
 	if _, err := v.ValidateCreate(context.Background(), bad); err == nil {
@@ -106,7 +106,7 @@ func TestTemplateWebhook_DuplicateEnvVar(t *testing.T) {
 	v := &GameTemplateCustomValidator{}
 	bad := tplWith(func(t *gameserverv1alpha1.GameTemplate) {
 		t.Spec.ConfigKeys = append(t.Spec.ConfigKeys, gameserverv1alpha1.ConfigKey{
-			Name: "motd2", EnvVar: "MOTD",
+			Name: "motd2", EnvVar: testEnvMOTD,
 		})
 	})
 	if _, err := v.ValidateCreate(context.Background(), bad); err == nil {
@@ -118,7 +118,7 @@ func TestTemplateWebhook_EnumWithoutValuesRejected(t *testing.T) {
 	v := &GameTemplateCustomValidator{}
 	bad := tplWith(func(t *gameserverv1alpha1.GameTemplate) {
 		t.Spec.ConfigKeys = []gameserverv1alpha1.ConfigKey{
-			{Name: "mode", EnvVar: "MODE", Type: "enum"},
+			{Name: "mode", EnvVar: "MODE", Type: testConfigKeyEnum},
 		}
 	})
 	_, err := v.ValidateCreate(context.Background(), bad)
@@ -146,7 +146,7 @@ func TestTemplateWebhook_DefaultNotInEnum(t *testing.T) {
 	v := &GameTemplateCustomValidator{}
 	bad := tplWith(func(t *gameserverv1alpha1.GameTemplate) {
 		t.Spec.ConfigKeys = []gameserverv1alpha1.ConfigKey{
-			{Name: "mode", EnvVar: "MODE", Type: "enum", Enum: []string{"easy", "hard"}, Default: "impossible"},
+			{Name: "mode", EnvVar: "MODE", Type: testConfigKeyEnum, Enum: []string{"easy", "hard"}, Default: "impossible"},
 		}
 	})
 	_, err := v.ValidateCreate(context.Background(), bad)
@@ -163,7 +163,7 @@ func TestTemplateWebhook_UpdateReValidates(t *testing.T) {
 	old := tplWith(nil)
 	newTpl := tplWith(func(t *gameserverv1alpha1.GameTemplate) {
 		t.Spec.Ports = append(t.Spec.Ports, gameserverv1alpha1.TemplatePort{
-			Name: "game", ContainerPort: 25575, // duplicate name
+			Name: testPortNameGame, ContainerPort: 25575, // duplicate name
 		})
 	})
 	if _, err := v.ValidateUpdate(context.Background(), old, newTpl); err == nil {

@@ -20,20 +20,20 @@ import (
 
 func TestBuildVolumeSnapshot_MinimalFields(t *testing.T) {
 	gs := &gameserverv1alpha1.GameServer{
-		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: "minecraft"},
+		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: testNSMinecraft},
 		Spec: gameserverv1alpha1.GameServerSpec{
 			TemplateRef: gameserverv1alpha1.TemplateRef{Name: "minecraft-java"},
 		},
 	}
 	b := &gameserverv1alpha1.Backup{
-		ObjectMeta: metav1.ObjectMeta{Name: "mc-backup", Namespace: "minecraft"},
+		ObjectMeta: metav1.ObjectMeta{Name: "mc-backup", Namespace: testNSMinecraft},
 		Spec:       gameserverv1alpha1.BackupSpec{GameServerRef: gameserverv1alpha1.GameServerRef{Name: "mc"}},
 	}
 	vs := BuildVolumeSnapshot(b, gs)
 	if vs.Name != "mc-backup" {
 		t.Errorf("VolumeSnapshot name = %q; want %q", vs.Name, b.Name)
 	}
-	if vs.Namespace != "minecraft" {
+	if vs.Namespace != testNSMinecraft {
 		t.Errorf("VolumeSnapshot namespace = %q; want %q", vs.Namespace, b.Namespace)
 	}
 	if vs.Spec.Source.PersistentVolumeClaimName == nil || *vs.Spec.Source.PersistentVolumeClaimName != "mc-data" {
@@ -46,10 +46,10 @@ func TestBuildVolumeSnapshot_MinimalFields(t *testing.T) {
 
 func TestBuildVolumeSnapshot_ExplicitClass(t *testing.T) {
 	gs := &gameserverv1alpha1.GameServer{
-		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: "minecraft"},
+		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: testNSMinecraft},
 	}
 	b := &gameserverv1alpha1.Backup{
-		ObjectMeta: metav1.ObjectMeta{Name: "b1", Namespace: "minecraft"},
+		ObjectMeta: metav1.ObjectMeta{Name: "b1", Namespace: testNSMinecraft},
 		Spec: gameserverv1alpha1.BackupSpec{
 			GameServerRef:           gameserverv1alpha1.GameServerRef{Name: "mc"},
 			VolumeSnapshotClassName: "synology-snapshot",
@@ -63,7 +63,7 @@ func TestBuildVolumeSnapshot_ExplicitClass(t *testing.T) {
 
 func TestBuildPVC_RestoreFromSnapshot(t *testing.T) {
 	gs := &gameserverv1alpha1.GameServer{
-		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: "minecraft"},
+		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: testNSMinecraft},
 		Spec:       gameserverv1alpha1.GameServerSpec{TemplateRef: gameserverv1alpha1.TemplateRef{Name: "t"}},
 	}
 	tpl := &gameserverv1alpha1.GameTemplate{
@@ -92,7 +92,7 @@ func TestBuildPVC_RestoreFromSnapshot(t *testing.T) {
 
 func TestBuildPVC_NoRestore(t *testing.T) {
 	gs := &gameserverv1alpha1.GameServer{
-		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: "minecraft"},
+		ObjectMeta: metav1.ObjectMeta{Name: "mc", Namespace: testNSMinecraft},
 		Spec:       gameserverv1alpha1.GameServerSpec{TemplateRef: gameserverv1alpha1.TemplateRef{Name: "t"}},
 	}
 	tpl := &gameserverv1alpha1.GameTemplate{

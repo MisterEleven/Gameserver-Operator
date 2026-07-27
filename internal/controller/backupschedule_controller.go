@@ -13,7 +13,7 @@ package controller
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"time"
 
 	"github.com/robfig/cron/v3"
@@ -78,7 +78,7 @@ func (r *BackupScheduleReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	// recent of lastScheduleTime and (now - 24h). The 24h floor keeps
 	// us from spamming missed runs after a long controller downtime.
 	ref := now.Add(-24 * time.Hour)
-	if bs.Status.LastScheduleTime != nil && bs.Status.LastScheduleTime.Time.After(ref) {
+	if bs.Status.LastScheduleTime != nil && bs.Status.LastScheduleTime.After(ref) {
 		ref = bs.Status.LastScheduleTime.Time
 	}
 	nextFire := sched.Next(ref.In(loc))
@@ -110,10 +110,7 @@ func (r *BackupScheduleReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Requeue right after the next scheduled time — the min just
 	// ensures we don't drift more than ~1min from any wall-clock skew.
-	waitFor := time.Until(sched.Next(now.In(loc)))
-	if waitFor < time.Minute {
-		waitFor = time.Minute
-	}
+	waitFor := max(time.Until(sched.Next(now.In(loc))), time.Minute)
 	return ctrl.Result{RequeueAfter: waitFor}, nil
 }
 
@@ -144,10 +141,10 @@ func (r *BackupScheduleReconciler) spawnBackup(ctx context.Context, bs *gameserv
 			Name:      fmt.Sprintf("%s-%s", bs.Name, fireTime.UTC().Format("20060102-1504")),
 			Namespace: bs.Namespace,
 			Labels: map[string]string{
-				labelName:                         appName,
-				labelInstance:                     bs.Spec.GameServerRef.Name,
-				labelManagedBy:                    managedByValue,
-				"gameserver.feddern.dev/schedule": bs.Name,
+				labelName:      appName,
+				labelInstance:  bs.Spec.GameServerRef.Name,
+				labelManagedBy: managedByValue,
+				labelSchedule:  bs.Name,
 			},
 		},
 		Spec: gameserverv1alpha1.BackupSpec{
@@ -169,12 +166,12 @@ func (r *BackupScheduleReconciler) spawnBackup(ctx context.Context, bs *gameserv
 func (r *BackupScheduleReconciler) applyRetention(ctx context.Context, bs *gameserverv1alpha1.BackupSchedule) error {
 	var list gameserverv1alpha1.BackupList
 	if err := r.List(ctx, &list, client.InNamespace(bs.Namespace),
-		client.MatchingLabels{"gameserver.feddern.dev/schedule": bs.Name}); err != nil {
+		client.MatchingLabels{labelSchedule: bs.Name}); err != nil {
 		return err
 	}
 	// Newest first.
-	sort.Slice(list.Items, func(i, j int) bool {
-		return list.Items[i].CreationTimestamp.After(list.Items[j].CreationTimestamp.Time)
+	slices.SortFunc(list.Items, func(a, b gameserverv1alpha1.Backup) int {
+		return b.CreationTimestamp.Compare(a.CreationTimestamp.Time)
 	})
 
 	keep := int(bs.Spec.Keep)
@@ -202,7 +199,7 @@ func (r *BackupScheduleReconciler) applyRetention(ctx context.Context, bs *games
 func (r *BackupScheduleReconciler) refreshChildStatus(ctx context.Context, bs *gameserverv1alpha1.BackupSchedule) error {
 	var list gameserverv1alpha1.BackupList
 	if err := r.List(ctx, &list, client.InNamespace(bs.Namespace),
-		client.MatchingLabels{"gameserver.feddern.dev/schedule": bs.Name}); err != nil {
+		client.MatchingLabels{labelSchedule: bs.Name}); err != nil {
 		return err
 	}
 	active := []corev1.LocalObjectReference{}
@@ -273,7 +270,7 @@ func (r *BackupScheduleReconciler) mapBackupToSchedule(_ context.Context, obj cl
 	if !ok {
 		return nil
 	}
-	name := b.Labels["gameserver.feddern.dev/schedule"]
+	name := b.Labels[labelSchedule]
 	if name == "" {
 		return nil
 	}

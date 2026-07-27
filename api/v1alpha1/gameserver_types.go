@@ -199,6 +199,9 @@ type GameServerList struct {
 
 // Condition type constants used across both resources.
 const (
+	// ConditionAvailable is the generic "resource observed and reconciled"
+	// signal. GameTemplate uses this to indicate its status is fresh.
+	ConditionAvailable = "Available"
 	// ConditionReady mirrors phase=Ready. True when the underlying pod is
 	// Ready AND (later) the game-specific probe passes.
 	ConditionReady = "Ready"

@@ -43,7 +43,7 @@ var _ = Describe("GameServer Controller", func() {
 				Spec: gameserverv1alpha1.GameTemplateSpec{
 					Image: "itzg/minecraft-server:latest",
 					Ports: []gameserverv1alpha1.TemplatePort{{
-						Name:          "game",
+						Name:          gameContainerName,
 						ContainerPort: 25565,
 						Protocol:      corev1.ProtocolTCP,
 						ExposeAs:      gameserverv1alpha1.ExposureClusterIP,

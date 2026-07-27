@@ -32,18 +32,30 @@ func buildScheme(t *testing.T) *runtime.Scheme {
 	return s
 }
 
-func minimalTemplate(name string) *gameserverv1alpha1.GameTemplate {
+const (
+	testTemplateName   = "mc"
+	testKeyMOTD        = "motd"
+	testEnvMOTD        = "MOTD"
+	testKeyDifficulty  = "difficulty"
+	testEnvDifficulty  = "DIFFICULTY"
+	testDifficultyEasy = "easy"
+	testDifficultyHard = "hard"
+	testConfigKeyEnum  = "enum"
+	testPortNameGame   = "game"
+)
+
+func minimalTemplate() *gameserverv1alpha1.GameTemplate {
 	return &gameserverv1alpha1.GameTemplate{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		ObjectMeta: metav1.ObjectMeta{Name: testTemplateName},
 		Spec: gameserverv1alpha1.GameTemplateSpec{
 			Image: "example/game:1",
 			Ports: []gameserverv1alpha1.TemplatePort{{
-				Name:          "game",
+				Name:          testPortNameGame,
 				ContainerPort: 12345,
 			}},
 			ConfigKeys: []gameserverv1alpha1.ConfigKey{
-				{Name: "motd", EnvVar: "MOTD", Default: "hi"},
-				{Name: "difficulty", EnvVar: "DIFFICULTY", Type: "enum", Enum: []string{"easy", "hard"}, Default: "easy"},
+				{Name: testKeyMOTD, EnvVar: testEnvMOTD, Default: "hi"},
+				{Name: testKeyDifficulty, EnvVar: testEnvDifficulty, Type: testConfigKeyEnum, Enum: []string{testDifficultyEasy, testDifficultyHard}, Default: testDifficultyEasy},
 			},
 		},
 	}
@@ -61,13 +73,13 @@ func gsFor(templateName string, config map[string]string) *gameserverv1alpha1.Ga
 
 func TestGameServerWebhook_Accept(t *testing.T) {
 	scheme := buildScheme(t)
-	tpl := minimalTemplate("mc")
+	tpl := minimalTemplate()
 	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tpl).Build()
 	v := &GameServerCustomValidator{Client: cli}
 
 	warnings, err := v.ValidateCreate(context.Background(), gsFor("mc", map[string]string{
-		"motd":       "hello",
-		"difficulty": "hard",
+		testKeyMOTD:       "hello",
+		testKeyDifficulty: "hard",
 	}))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -79,7 +91,7 @@ func TestGameServerWebhook_Accept(t *testing.T) {
 
 func TestGameServerWebhook_UnknownKeyRejected(t *testing.T) {
 	scheme := buildScheme(t)
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(minimalTemplate("mc")).Build()
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(minimalTemplate()).Build()
 	v := &GameServerCustomValidator{Client: cli}
 
 	_, err := v.ValidateCreate(context.Background(), gsFor("mc", map[string]string{"nope": "x"}))
@@ -93,10 +105,10 @@ func TestGameServerWebhook_UnknownKeyRejected(t *testing.T) {
 
 func TestGameServerWebhook_EnumRejected(t *testing.T) {
 	scheme := buildScheme(t)
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(minimalTemplate("mc")).Build()
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(minimalTemplate()).Build()
 	v := &GameServerCustomValidator{Client: cli}
 
-	_, err := v.ValidateCreate(context.Background(), gsFor("mc", map[string]string{"difficulty": "impossible"}))
+	_, err := v.ValidateCreate(context.Background(), gsFor("mc", map[string]string{testKeyDifficulty: "impossible"}))
 	if err == nil {
 		t.Fatal("expected rejection for out-of-enum value")
 	}
@@ -129,10 +141,10 @@ func TestGameServerWebhook_EmptyTemplateRefRejected(t *testing.T) {
 
 func TestGameServerWebhook_UpdateReValidates(t *testing.T) {
 	scheme := buildScheme(t)
-	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(minimalTemplate("mc")).Build()
+	cli := fake.NewClientBuilder().WithScheme(scheme).WithObjects(minimalTemplate()).Build()
 	v := &GameServerCustomValidator{Client: cli}
 
-	old := gsFor("mc", map[string]string{"motd": "before"})
+	old := gsFor("mc", map[string]string{testKeyMOTD: "before"})
 	newGS := gsFor("mc", map[string]string{"unknown": "after"})
 	_, err := v.ValidateUpdate(context.Background(), old, newGS)
 	if err == nil {

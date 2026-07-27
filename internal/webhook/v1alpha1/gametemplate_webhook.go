@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -127,33 +128,24 @@ func validateTemplate(tpl *gameserverv1alpha1.GameTemplate) error {
 		} else {
 			seenEnvVar[k.EnvVar] = i
 		}
-		if k.Type == "enum" && len(k.Enum) == 0 {
+		if k.Type == gameserverv1alpha1.ConfigKeyTypeEnum && len(k.Enum) == 0 {
 			errs = append(errs, field.Required(
 				kp.Child("enum"),
 				"enum type requires a non-empty enum list",
 			))
 		}
-		if k.Type != "enum" && len(k.Enum) > 0 {
+		if k.Type != gameserverv1alpha1.ConfigKeyTypeEnum && len(k.Enum) > 0 {
 			errs = append(errs, field.Forbidden(
 				kp.Child("enum"),
 				fmt.Sprintf("enum values only apply when type=enum (got type=%q)", k.Type),
 			))
 		}
-		if k.Default != "" && k.Type == "enum" {
-			ok := false
-			for _, e := range k.Enum {
-				if e == k.Default {
-					ok = true
-					break
-				}
-			}
-			if !ok {
-				errs = append(errs, field.Invalid(
-					kp.Child("default"),
-					k.Default,
-					fmt.Sprintf("default %q is not in enum list %v", k.Default, k.Enum),
-				))
-			}
+		if k.Default != "" && k.Type == gameserverv1alpha1.ConfigKeyTypeEnum && !slices.Contains(k.Enum, k.Default) {
+			errs = append(errs, field.Invalid(
+				kp.Child("default"),
+				k.Default,
+				fmt.Sprintf("default %q is not in enum list %v", k.Default, k.Enum),
+			))
 		}
 	}
 

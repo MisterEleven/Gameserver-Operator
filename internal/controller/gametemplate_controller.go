@@ -78,7 +78,7 @@ func (r *GameTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request
 func setTemplateCondition(tpl *gameserverv1alpha1.GameTemplate, status metav1.ConditionStatus, reason, msg string) {
 	now := metav1.Now()
 	for i, c := range tpl.Status.Conditions {
-		if c.Type != "Available" {
+		if c.Type != gameserverv1alpha1.ConditionAvailable {
 			continue
 		}
 		if c.Status != status {
@@ -91,7 +91,7 @@ func setTemplateCondition(tpl *gameserverv1alpha1.GameTemplate, status metav1.Co
 		return
 	}
 	tpl.Status.Conditions = append(tpl.Status.Conditions, metav1.Condition{
-		Type:               "Available",
+		Type:               gameserverv1alpha1.ConditionAvailable,
 		Status:             status,
 		Reason:             reason,
 		Message:            msg,
@@ -102,7 +102,7 @@ func setTemplateCondition(tpl *gameserverv1alpha1.GameTemplate, status metav1.Co
 
 func hasAvailableCondition(tpl *gameserverv1alpha1.GameTemplate) bool {
 	for _, c := range tpl.Status.Conditions {
-		if c.Type == "Available" && c.Status == metav1.ConditionTrue {
+		if c.Type == gameserverv1alpha1.ConditionAvailable && c.Status == metav1.ConditionTrue {
 			return true
 		}
 	}

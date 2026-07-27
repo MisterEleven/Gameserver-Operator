@@ -191,9 +191,8 @@ func main() {
 		os.Exit(1)
 	}
 	if err := (&controller.GameServerReconciler{
-		Client:   mgr.GetClient(),
-		Scheme:   mgr.GetScheme(),
-		Recorder: mgr.GetEventRecorderFor("gameserver-controller"),
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "Failed to create controller", "controller", "gameserver")
 		os.Exit(1)

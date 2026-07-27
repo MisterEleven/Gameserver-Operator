@@ -28,10 +28,10 @@ func VolumeSnapshotName(b *gameserverv1alpha1.Backup) string {
 // mechanics come from whatever driver backs the VolumeSnapshotClass.
 func BuildVolumeSnapshot(b *gameserverv1alpha1.Backup, gs *gameserverv1alpha1.GameServer) *snapshotv1.VolumeSnapshot {
 	labels := map[string]string{
-		labelName:                       appName,
-		labelInstance:                   gs.Name,
-		labelManagedBy:                  managedByValue,
-		"gameserver.feddern.dev/backup": b.Name,
+		labelName:      appName,
+		labelInstance:  gs.Name,
+		labelManagedBy: managedByValue,
+		labelBackup:    b.Name,
 	}
 	pvcName := PVCName(gs)
 	vs := &snapshotv1.VolumeSnapshot{

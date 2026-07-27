@@ -36,7 +36,7 @@ var _ = Describe("GameTemplate Controller", func() {
 				Spec: gameserverv1alpha1.GameTemplateSpec{
 					Image: "example/game:1",
 					Ports: []gameserverv1alpha1.TemplatePort{{
-						Name:          "game",
+						Name:          gameContainerName,
 						ContainerPort: 1234,
 						Protocol:      corev1.ProtocolTCP,
 						ExposeAs:      gameserverv1alpha1.ExposureClusterIP,
@@ -66,7 +66,7 @@ var _ = Describe("GameTemplate Controller", func() {
 			Expect(tpl.Status.ServersRegistered).To(Equal(int32(0)))
 			found := false
 			for _, c := range tpl.Status.Conditions {
-				if c.Type == "Available" && c.Status == metav1.ConditionTrue {
+				if c.Type == gameserverv1alpha1.ConditionAvailable && c.Status == metav1.ConditionTrue {
 					found = true
 				}
 			}

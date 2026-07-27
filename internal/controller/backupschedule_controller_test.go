@@ -36,7 +36,7 @@ var _ = Describe("BackupSchedule Controller", func() {
 			bs := &gameserverv1alpha1.BackupSchedule{
 				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
 				Spec: gameserverv1alpha1.BackupScheduleSpec{
-					GameServerRef: gameserverv1alpha1.GameServerRef{Name: "minecraft"},
+					GameServerRef: gameserverv1alpha1.GameServerRef{Name: testNSMinecraft},
 					Schedule:      "0 4 * * *",
 					Keep:          3,
 					Suspend:       true, // don't actually spawn during the test

@@ -106,6 +106,15 @@ type TemplateStorage struct {
 	DefaultSize string `json:"defaultSize,omitempty"`
 }
 
+// Discriminator values for ConfigKey.Type. Kept exported so webhook
+// validation and the reconciler both reference the same string.
+const (
+	ConfigKeyTypeString = "string"
+	ConfigKeyTypeInt    = "int"
+	ConfigKeyTypeBool   = "bool"
+	ConfigKeyTypeEnum   = "enum"
+)
+
 // ConfigKey declares one knob a GameServer may set under .spec.config.
 // Every key defined here becomes a container env var (name = envVar).
 // Constraints follow the JSON Schema subset supported by CRD validation.
