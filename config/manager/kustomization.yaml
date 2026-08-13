@@ -8,4 +8,4 @@ images:
   newName: ghcr.io/mistereleven/gameserver-operator
   # docker/metadata-action strips the `v` from git tags per the OCI
   # convention, so `git tag v0.1.0` → image tag `0.1.0`.
-  newTag: "0.1.0"
+  newTag: "0.2.0"
